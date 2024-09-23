@@ -1,222 +1,168 @@
+import 'package:firebase_auth/firebase_auth.dart'; // Import for FirebaseAuth
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart'; // Import Firebase core
+import 'package:flutter_application_1/screen/signin_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_application_1/screen/signin_screen.dart'; // Import Firestore
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(); // Initialize Firebase
-  runApp(const MainApp());
-}
-
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+class TodoApp extends StatefulWidget {
+  const TodoApp({
+    super.key,
+  });
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme:
-              ColorScheme.fromSeed(seedColor: Color.fromARGB(255, 207, 6, 238)),
-          useMaterial3: true,
-        ),
-        home: const SigninScreen() //TodoApp(),
-        );
-  }
+  State<TodoApp> createState() => _TodoAppState();
 }
 
-class TodaApp extends StatefulWidget {
-  const TodaApp({super.key});
+class _TodoAppState extends State<TodoApp> {
+  late TextEditingController _texteditController;
+  late TextEditingController _descriptionController;
 
-  @override
-  State<TodaApp> createState() => _TodaAppState();
-}
-
-class _TodaAppState extends State<TodaApp> {
-  late TextEditingController _titleController;
-  late TextEditingController _detailController;
-  final CollectionReference tasks =
-      FirebaseFirestore.instance.collection('tasks');
+  final List<String> _myList = [];
 
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController();
-    _detailController = TextEditingController();
+    _texteditController = TextEditingController();
+    _descriptionController = TextEditingController();
   }
 
-  // ฟังก์ชันสร้างรายการใหม่
-  Future<void> addTodoHandle(BuildContext context) async {
+  void addTodoHandle(BuildContext context) {
     showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("add"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _titleController,
-                decoration: const InputDecoration(
-                    border: OutlineInputBorder(), labelText: "name"),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _detailController,
-                decoration: const InputDecoration(
-                    border: OutlineInputBorder(), labelText: "details"),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                await tasks.add({
-                  'name': _titleController.text,
-                  'note': _detailController.text,
-                  'status': false, // ค่าเริ่มต้นเป็น false (ยังไม่เสร็จ)
-                });
-                _titleController.clear();
-                _detailController.clear();
-                Navigator.pop(context);
-              },
-              child: const Text("save"),
-            )
-          ],
-        );
-      },
-    );
-  }
-
-  // ฟังก์ชันแก้ไขข้อมูล
-  Future<void> editTodoHandle(BuildContext context, String id,
-      String currentName, String currentNote, bool currentStatus) async {
-    _titleController.text = currentName;
-    _detailController.text = currentNote;
-    bool _isChecked = currentStatus; // สร้างตัวแปรเพื่อเก็บสถานะ
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text("edit"),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text("Add new task"),
+            content: SizedBox(
+              width: 120,
+              height: 140,
+              child: Column(
                 children: [
                   TextField(
-                    controller: _titleController,
+                    controller: _texteditController,
                     decoration: const InputDecoration(
-                        border: OutlineInputBorder(), labelText: "name"),
+                        border: OutlineInputBorder(),
+                        labelText: "Input your task"),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(
+                    height: 8,
+                  ),
                   TextField(
-                    controller: _detailController,
+                    controller: _descriptionController,
                     decoration: const InputDecoration(
-                        border: OutlineInputBorder(), labelText: "details"),
-                  ),
-                  const SizedBox(height: 10),
-                  CheckboxListTile(
-                    title: const Text("end"),
-                    value: _isChecked,
-                    onChanged: (bool? newValue) {
-                      setState(() {
-                        _isChecked = newValue!; // อัพเดตสถานะ
-                      });
-                    },
+                        border: OutlineInputBorder(), labelText: "Description"),
                   ),
                 ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: () async {
-                    await tasks.doc(id).update({
-                      'name': _titleController.text,
-                      'note': _detailController.text,
-                      'status': _isChecked, // อัพเดตสถานะ
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () {
+                    CollectionReference Tasks =
+                        FirebaseFirestore.instance.collection("tasks");
+                    Tasks.add({'name': _texteditController.text}).then((res) {
+                      print(res);
+                    }).catchError((onError) {
+                      print("Failed to add new Task");
                     });
-                    _titleController.clear();
-                    _detailController.clear();
+                    setState(() {
+                      _myList.add(_texteditController.text);
+                    });
+                    _texteditController.text = "";
                     Navigator.pop(context);
                   },
-                  child: const Text("save"),
-                )
-              ],
-            );
-          },
-        );
-      },
-    );
+                  child: const Text("Save"))
+            ],
+          );
+        });
   }
 
-  // ฟังก์ชันลบรายการ
-  Future<void> deleteTodoHandle(String id) async {
-    await tasks.doc(id).delete();
+  // Sign-out function
+  Future<void> logout(BuildContext context) async {
+    await FirebaseAuth.instance.signOut(); // Sign out from Firebase
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const SigninScreen()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("To-do list"),
+        title: const Text("Todo"),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              logout(context); // Call the logout function
+            },
+            tooltip: "Logout",
+          )
+        ],
       ),
       body: StreamBuilder(
-        stream: tasks.snapshots(), // ดึงข้อมูลจาก Firestore แบบเรียลไทม์
-        builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          return ListView(
-            children: snapshot.data!.docs.map((doc) {
-              return ListTile(
-                title: Text(doc['name']),
-                subtitle: Text(doc['note']),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit,
-                          color: Color.fromARGB(255, 158, 158, 158)),
-                      onPressed: () {
-                        editTodoHandle(
-                          context,
-                          doc.id,
-                          doc['name'],
-                          doc['note'],
-                          doc['status'],
-                        );
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete,
-                          color: Color.fromARGB(255, 243, 6, 6)),
-                      onPressed: () {
-                        deleteTodoHandle(doc.id);
-                      },
-                    ),
-                  ],
-                ),
-                leading: Checkbox(
-                  value: doc['status'],
-                  onChanged: (bool? value) {
-                    tasks.doc(doc.id).update({'status': value});
-                  },
-                ),
-              );
-            }).toList(),
-          );
-        },
-      ),
+          stream: FirebaseFirestore.instance.collection("tasks").snapshots(),
+          builder: (context, snapshot) {
+            return snapshot.data != null
+                ? ListView.builder(
+                    itemCount: snapshot.data?.docs.length,
+                    itemBuilder: (context, index) {
+                      var item = snapshot.data?.docs[index].data();
+                      return TaskItem(item: item);
+                    })
+                : const Text("No data");
+          }),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           addTodoHandle(context);
         },
         child: const Icon(Icons.add),
       ),
+    );
+  }
+}
+
+class TaskItem extends StatefulWidget {
+  TaskItem({
+    super.key,
+    required this.item,
+  });
+
+  late Map<String, dynamic>? item;
+
+  @override
+  State<TaskItem> createState() => _TaskItemState();
+}
+
+class _TaskItemState extends State<TaskItem> {
+  @override
+  void initState() {
+    super.initState();
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Row(children: [
+        Checkbox(
+            value: widget.item?["status"] ?? false,
+            onChanged: (value) {
+              setState(() {});
+            }),
+        Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.item?["name"],
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            if (widget.item?["note"] != null) Text(widget.item?["note"]),
+          ],
+        )
+      ]),
     );
   }
 }

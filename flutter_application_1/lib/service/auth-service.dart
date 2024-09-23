@@ -1,13 +1,45 @@
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  Future<String?> reqistration(
+      {required String email,
+      required String password,
+      required String confirm}) async {
+    try {
+      //check password == confirm
 
-  // Sign up
-  Future<String> register(
+      await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
+      return 'success';
+    } on FirebaseAuthException catch (e) {
+      return e.message;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  Future<String?> signin({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
+      return 'success';
+    } on FirebaseAuthException catch (e) {
+      return e.message;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+
+  // Registration method
+  Future<String> registration(
       {required String email, required String password}) async {
     try {
-      await _auth.createUserWithEmailAndPassword(
+      await _firebaseAuth.createUserWithEmailAndPassword(
           email: email, password: password);
       return 'success';
     } catch (e) {
@@ -15,19 +47,7 @@ class AuthService {
     }
   }
 
-  // Sign in
-  Future<String> signIn(
-      {required String email, required String password}) async {
-    try {
-      await _auth.signInWithEmailAndPassword(email: email, password: password);
-      return 'success';
-    } catch (e) {
-      return e.toString();
-    }
-  }
 
-  // Sign out
-  Future<void> signOut() async {
-    await _auth.signOut();
-  }
+
+  
 }
